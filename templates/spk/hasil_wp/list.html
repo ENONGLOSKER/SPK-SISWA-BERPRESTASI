@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dashboard Hasil Penilaian WP{% endblock %}
+
+{% block content %}
+<div class="container p-3">
+    <!-- Header Dashboard -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Hasil Perhitungan WP</h2>
+       <div class="d-flex align-items-center gap-2">
+        <a href="{% url 'reset_perhitungan' %}"  class="btn btn-danger rounded-pill" onclick="return confirm('Yakin ingin mereset hasil perhitungan?')">
+            <i class="bi bi-calculator"></i> Reset Hasil
+        </a>
+        <form method="post" action="{% url 'hitung_wp' %}">
+            {% csrf_token %}
+            <button type="submit"
+                class="btn btn-success w-100 d-flex align-items-center justify-content-center gap-2 rounded-pill py-2 px-3"
+                style="font-size: 15px; font-weight: 500; background: linear-gradient(22deg, #2a0064, #6a228b,  #ba88ff); border: none; box-shadow: 0 8px 15px rgba(206, 99, 255, 0.556);">
+                <i class="bi bi-calculator"></i> <!-- Bootstrap Icons -->
+                Hitung WP
+            </button>
+        </form>
+       </div>
+    </div>
+
+    <!-- Info Card -->
+    <div class="p-3 rounded-3 mb-5" style="background: linear-gradient(90deg, #f0e0ff 0%, #d8b2f7 100%); border: 1px solid #d8b2f7; color: #321856;">
+        <i class="bi bi-info-circle-fill me-2"></i>
+        <strong>Informasi Hasil Perhitungan WP:</strong> Halaman ini menampilkan hasil penilaian dan ranking siswa berdasarkan metode Weighted Product (WP). Anda dapat melihat peringkat, nilai vektor, kategori, serta detail penilaian setiap siswa. Gunakan fitur filter dan pencarian untuk memudahkan analisis hasil.
+    </div>
+
+    <!-- Filter & Search -->
+    <div class="row mb-3">
+        <div class="col-md-4 mb-2 mb-md-0">
+            <select class="form-select" id="filterKelas" onchange="filterHasilTable()">
+                <option value="">Semua Kelas</option>
+                {% for kelas in kelas_list %}
+                <option value="{{ kelas }}">{{ kelas }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4 mb-2 mb-md-0">
+            <select class="form-select" id="filterKategori" onchange="filterHasilTable()">
+                <option value="">Semua Kategori</option>
+                <option value="unggul">Unggul</option>
+                <option value="tidak_unggul">Tidak Unggul</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <input type="text" class="form-control" id="searchHasilInput" placeholder="Cari nama/NIS..." onkeyup="filterHasilTable()">
+        </div>
+    </div>
+
+    <!-- Tabel Hasil WP -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3" style="background: linear-gradient(90deg, #f0e0ff 0%, #d8b2f7 100%); border: 1px solid #d8b2f7; color: #321856;">
+            <h6 class="m-0 font-weight-bold">Tahap 1 : Data Penilaian WP</h6>
+        </div>
+        <div class="card-body p-0">
+            <!-- tahap 1 penilaian dan normalisasi -->
+            <div class="tahap1">
+                <div class="table-responsive p-3">
+                    <table class="table table-bordered table-hover align-middle mb-0">
+                        <thead class="text-center table-light">
+                            <tr>
+                                <th rowspan="2" class="text-center align-middle" style="width: 50px;">NO</th>
+                                <th rowspan="2" class="text-center align-middle">ALTERNATIF</th>
+                                <th colspan="4" class="text-center align-middle">KRITERIA</th>
+                            </tr>
+                            <tr class="text-center bg-light">
+                                <th class="text-center align-middle">C1<br><span class="text-muted small">(BF = 0.4)</span></th>
+                                <th class="text-center align-middle">C2<br><span class="text-muted small">(CS = 0.3)</span></th>
+                                <th class="text-center align-middle">C3<br><span class="text-muted small">(BF = 0.2)</span></th>
+                                <th class="text-center align-middle">C4<br><span class="text-muted small">(CS = 0.1)</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in penilaian_data %}
+                            <tr class="text-center">
+                                <td>{{ forloop.counter }}</td>
+                                <td class="fw-bold">{{ row.siswa.nama }}</td>
+                                <td>{{ row.penilaian.C1|default:"-" }}</td>
+                                <td>{{ row.penilaian.C2|default:"-" }}</td>
+                                <td>{{ row.penilaian.C3|default:"-" }}</td>
+                                <td>{{ row.penilaian.C4|default:"-" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="7" class="text-center">Data tidak tersedia</td></tr>
+                            {% endfor %}
+                        </tbody>
+                        
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                <div class="d-flex justify-content-between align-items-center mt-3 px-3 pb-3">
+                    <div class="text-muted small">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Menampilkan Total <span id="totalHasilCount">{{ total_data }}</span> data
+                    </div>
+                    <nav aria-label="Hasil WP pagination">
+                        <ul class="pagination pagination-sm mb-0 shadow-sm" id="hasilWpPagination" style="border-radius: 25px; overflow: hidden;">
+                            <!-- Pagination items will be generated by JS -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- TAHP 2 -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3" style="background: linear-gradient(90deg, #f0e0ff 0%, #d8b2f7 100%); border: 1px solid #d8b2f7; color: #321856;">
+            <h6 class="m-0 font-weight-bold">Tahap 2 : Data Vektor S</h6>
+        </div>
+        <div class="card-body p-0">
+            <!-- tahap 2 vektor s -->
+            <div class="tahap1">
+                <div class="table-responsive p-3">
+                    <h4>Data vektor s</h4>
+                    <table class="table table-bordered table-hover align-middle mb-0">
+                        <thead class="text-center table-light">
+                            <tr>
+                                <th rowspan="2" class="text-center align-middle" style="width: 50px;">NO</th>
+                                <th rowspan="2" class="text-center align-middle">ALTERNATIF</th>
+                                <th colspan="4" class="text-center align-middle">KRITERIA</th>
+                                <th rowspan="2" class="text-center align-middle" style="background-color: #ead3ff;">JUMLAH</th>
+                            </tr>
+                            <tr class="text-center bg-light">
+                                <th class="text-center align-middle">C1<br><span class="text-muted small">(BF = 0.4)</span></th>
+                                <th class="text-center align-middle">C2<br><span class="text-muted small">(CS = 0.3)</span></th>
+                                <th class="text-center align-middle">C3<br><span class="text-muted small">(BF = 0.2)</span></th>
+                                <th class="text-center align-middle">C4<br><span class="text-muted small">(CS = 0.1)</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in penilaian_data %}
+                            <tr class="text-center">
+                                <td>{{ forloop.counter }}</td>
+                                <td class="fw-bold">{{ row.siswa.nama }}</td>
+                                <td>{{ row.penilaian.C1|default:"-" }}</td>
+                                <td>{{ row.penilaian.C2|default:"-" }}</td>
+                                <td>{{ row.penilaian.C3|default:"-" }}</td>
+                                <td>{{ row.penilaian.C4|default:"-" }}</td>
+                                <td>{{ row.jumlah_vector_s|floatformat:4 }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="text-center fw-bold bg-light">
+                                <td colspan="6" class="text-end">TOTAL</td>
+                                <td style="background-color: #9e59fe; color: #ffffff; font-weight: bold;">{{ total_vector_s|floatformat:4 }}</td>
+                            </tr>
+                        </tfoot>
+                        
+                        
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                <div class="d-flex justify-content-between align-items-center mt-3 px-3 pb-3">
+                    <div class="text-muted small">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Menampilkan Total <span id="totalHasilCount">{{ total_data }}</span> data
+                    </div>
+                    <nav aria-label="Hasil WP pagination">
+                        <ul class="pagination pagination-sm mb-0 shadow-sm" id="hasilWpPagination" style="border-radius: 25px; overflow: hidden;">
+                            <!-- Pagination items will be generated by JS -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- detail -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3" style="background: linear-gradient(90deg, #f0e0ff 0%, #d8b2f7 100%); border: 1px solid #d8b2f7; color: #321856;">
+            <h6 class="m-0 font-weight-bold">Tahap 3 : Data Vektor V</h6>
+        </div>
+        <div class="card-body p-0">  
+             <!-- tahap 3 vektor v -->
+            <div class="tahap3">
+                <div class="table-responsive p-3">
+                    <h4>Data Vektor V dan Ranking</h4>
+                    <table class="table table-bordered table-hover align-middle mb-0">
+                        <thead class="text-center table-light">
+                            <tr>
+                                <th style="width: 50px;">NO</th>
+                                <th>ALTERNATIF</th>
+                                <th>NIS</th>
+                                <th>KELAS</th>
+                                <th>VECTOR S</th>
+                                <th>VECTOR V</th>
+                                <th>RANKING</th>
+                                <th style="width: 120px;">ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for hasil in data_hasil %}
+                            <tr class="text-center">
+                                <td>{{ forloop.counter }}</td>
+                                <td class="fw-bold">{{ hasil.siswa.nama }}</td>
+                                <td>{{ hasil.siswa.nis }}</td>
+                                <td>{{ hasil.siswa.kelas }}</td>
+                                <td>{{ hasil.vector_s|floatformat:4 }}</td>
+                                <td>{{ hasil.vector_v|floatformat:4 }}</td>
+                                <td>
+                                    <span class="badge bg-success">{{ hasil.ranking }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <a href="{% url 'detail_hasil_wp' hasil.id %}" class="btn btn-sm" title="Detail" style="background-color: #a5f005; color: #321856;">
+                                        <i class="bi bi-search"></i>
+                                        Detail
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="8" class="text-center text-muted">Belum ada hasil WP.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="d-flex justify-content-between align-items-center mt-3 px-3 pb-3">
+                    <div class="text-muted small">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Menampilkan Total <span>{{ total_data }}</span> data
+                    </div>
+                    <nav aria-label="Hasil WP pagination">
+                        <ul class="pagination pagination-sm mb-0 shadow-sm" id="hasilWpPagination" style="border-radius: 25px; overflow: hidden;">
+                            <!-- Pagination items will be generated by JS -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    // Dashboard Hasil WP: Filter, Search, Pagination
+    const hasilRowsPerPage = 10;
+    let hasilCurrentPage = 1;
+
+    function filterHasilTable() {
+        const kelas = document.getElementById('filterKelas').value.trim().toLowerCase();
+        const kategori = document.getElementById('filterKategori').value.trim().toLowerCase();
+        const search = document.getElementById('searchHasilInput').value.trim().toLowerCase();
+        const tbody = document.getElementById('hasilWpTableBody');
+        const rows = Array.from(tbody.getElementsByTagName('tr'));
+
+        rows.forEach(row => {
+            // Only filter data rows, not the empty row
+            if (row.querySelector('.badge.bg-success')) {
+                const cells = row.getElementsByTagName('td');
+                const nis = cells[1].textContent.trim().toLowerCase();
+                const nama = cells[2].textContent.trim().toLowerCase();
+                const kelasVal = cells[3].textContent.trim().toLowerCase();
+                const kategoriVal = cells[6].textContent.trim().toLowerCase();
+
+                let show = true;
+                if (kelas && kelasVal !== kelas) show = false;
+                if (kategori) {
+                    if (kategori === "unggul" && kategoriVal !== "unggul") show = false;
+                    if (kategori === "tidak_unggul" && kategoriVal !== "tidak unggul") show = false;
+                }
+                if (search && !(nama.includes(search) || nis.includes(search))) show = false;
+
+                row.dataset.filtered = show ? "1" : "0";
+            }
+        });
+        hasilCurrentPage = 1;
+        paginateHasilTable();
+    }
+
+    function paginateHasilTable() {
+        const tbody = document.getElementById('hasilWpTableBody');
+        const allRows = Array.from(tbody.getElementsByTagName('tr'));
+        // Only count/filter data rows (with .badge.bg-success)
+        const dataRows = allRows.filter(row => row.querySelector('.badge.bg-success') && row.dataset.filtered !== "0");
+        const totalRows = dataRows.length;
+        const totalPages = Math.max(1, Math.ceil(totalRows / hasilRowsPerPage));
+
+        // Hide all data rows first
+        allRows.forEach(row => {
+            if (row.querySelector('.badge.bg-success')) {
+                row.style.display = 'none';
+            }
+        });
+
+        // Show only rows for current page
+        const start = (hasilCurrentPage - 1) * hasilRowsPerPage;
+        const end = start + hasilRowsPerPage;
+        dataRows.slice(start, end).forEach(row => {
+            row.style.display = '';
+        });
+
+        // Show/hide empty row if needed
+        const emptyRow = allRows.find(row => !row.querySelector('.badge.bg-success'));
+        if (totalRows === 0 && emptyRow) {
+            emptyRow.style.display = '';
+        } else if (emptyRow) {
+            emptyRow.style.display = 'none';
+        }
+
+        // Pagination UI
+        const pagination = document.getElementById('hasilWpPagination');
+        pagination.innerHTML = '';
+        for (let i = 1; i <= totalPages; i++) {
+            const li = document.createElement('li');
+            li.className = 'page-item' + (i === hasilCurrentPage ? ' active' : '');
+            const a = document.createElement('a');
+            a.className = 'page-link';
+            a.href = '#';
+            a.textContent = i;
+            a.onclick = function (e) {
+                e.preventDefault();
+                if (hasilCurrentPage !== i) {
+                    hasilCurrentPage = i;
+                    paginateHasilTable();
+                }
+            };
+            li.appendChild(a);
+            pagination.appendChild(li);
+        }
+    }
+
+    // Initial setup
+    document.addEventListener('DOMContentLoaded', function () {
+        // Set all rows as filtered by default
+        const tbody = document.getElementById('hasilWpTableBody');
+        Array.from(tbody.getElementsByTagName('tr')).forEach(row => {
+            if (row.querySelector('.badge.bg-success')) {
+                row.dataset.filtered = "1";
+            }
+        });
+        filterHasilTable();
+    });
+</script>
+{% endblock %}

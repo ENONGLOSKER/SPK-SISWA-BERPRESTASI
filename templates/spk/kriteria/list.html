@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Kriteria{% endblock %}
+
+{% block content %}
+<!-- KONTEN UTAMA DASHBOARD -->
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center px-3" style="background-color: #F7F7F7; padding: 10px;">
+    <h4>Data Kriteria</h4>
+    <div class="d-flex align-items-center gap-3">
+        <img src="https://i.pravatar.cc/40" class="rounded-img" alt="profile" style="border: 4px solid #eeeeee;">
+        <div>
+            <strong>{{ request.user.get_full_name|default:request.user.username }}</strong><br>
+            <small class="text-muted-sm">{{ request.user.email }}</small>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 px-3">
+    <!-- Top Section -->
+    <div class="d-flex justify-content-between">
+        <div class="p-3 rounded-3 mb-5 w-100"
+            style="background: linear-gradient(90deg, #f0e0ff 0%, #d8b2f7 100%); border: 1px solid #d8b2f7; color: #321856; font-size: 15px; font-weight: 400;">
+            <p class="mb-0">
+                <i class="bi bi-info-circle-fill me-2"></i>
+                <strong>Deskripsi Fitur Kriteria:</strong> Fitur ini digunakan untuk mengelola data kriteria yang menjadi dasar penilaian dalam pemilihan siswa berprestasi menggunakan metode Weighted Product (WP). Setiap kriteria memiliki jenis (benefit/cost) dan bobot yang mencerminkan tingkat kepentingannya dalam proses pengambilan keputusan. Anda dapat menambah, mengubah, maupun menghapus kriteria sesuai kebutuhan. Pastikan total bobot seluruh kriteria berjumlah 1.0 agar perhitungan WP berjalan dengan benar dan hasil rekomendasi lebih akurat.
+            </p>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row g-3 mb-3" style="margin-top: -15px;">
+        <div class="col-md-12">
+            <div class="card-custom1 d-flex flex-column justify-content-center p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <h5 class="mb-0 fw-semibold">Daftar Kriteria</h5>
+                    <a href="{% url 'kriteria_add' %}" style="font-size: 15px; background-color: #850de7; color: white; text-decoration: none; border-radius: 12px; padding: 12px 18px;">
+                        <i class="bi bi-plus-circle me-2"></i>Tambah Kriteria
+                    </a>
+                    
+                </div>
+                <form id="multiDeleteForm" autocomplete="off" onsubmit="return false;">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle mb-0" id="kriteriaTable"
+                            style="background: #fff; border-radius: 12px; overflow: hidden;">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th style="width: 30px;">
+                                        <input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)">
+                                    </th>
+                                    <th style="width: 40px;">No</th>
+                                    <th>Kode</th>
+                                    <th>Nama</th>
+                                    <th>Jenis</th>
+                                    <th>Bobot</th>
+                                    <th>Deskripsi</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="kriteriaTableBody">
+                                {% for kriteria in data_kriteria %}
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" class="row-checkbox" value="{{ kriteria.pk }}">
+                                    </td>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>{{ kriteria.kode }}</td>
+                                    <td>{{ kriteria.nama }}</td>
+                                    <td>
+                                        {% if kriteria.jenis == 'benefit' %}
+                                        <span class="badge bg-success">Benefit</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Cost</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ kriteria.bobot|floatformat:2 }}</td>
+                                    <td>{{ kriteria.deskripsi|truncatechars:50 }}</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{% url 'kriteria_update' kriteria.id %}" class="btn btn-warning"
+                                                title="Edit">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </a>
+                                            <a href="{% url 'kriteria_delete' kriteria.id %}" class="btn btn-danger"
+                                                title="Hapus" onclick="return confirm('Yakin ingin menghapus kriteria ini?')">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center">Tidak ada data kriteria</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+
+                        <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
+                            <button type="button" class="btn btn-danger btn-sm rounded-pill" id="deleteSelectedBtn"
+                                onclick="deleteSelectedRows()" disabled>
+                                <i class="bi bi-trash"></i> Hapus Terpilih
+                            </button>
+                            
+                            <!-- Pagination -->
+                            <nav>
+                                <ul class="pagination pagination-sm mb-0" id="pagination">
+                                    <!-- Pagination items will be generated by JS -->
+                                </ul>
+                            </nav>
+                        </div>
+
+                        <!-- Bobot Validation Alert -->
+                        {% if total_bobot != 1.0 %}
+                        <div class="p-3 rounded mt-3" style="background-color: #fde37beb;">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            <strong>Perhatian!</strong> Total bobot kriteria harus 1.0. Saat ini total bobot adalah {{ total_bobot|floatformat:2 }}.
+                            <span class="badge bg-success me-2">Benefit: {{ benefit_count }}</span>
+                            <span class="badge bg-danger">Cost: {{ cost_count }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    // PAGINATION: 6 DATA PER PAGE, TAMPILKAN DATA SESUAI PAGE YANG DIPILIH
+    const rowsPerPage = 6;
+    let currentPage = 1;
+
+    function paginateTable() {
+        const tbody = document.getElementById('kriteriaTableBody');
+        const allRows = Array.from(tbody.getElementsByTagName('tr'));
+        // Only count/filter data rows (with .row-checkbox)
+        const dataRows = allRows.filter(row => row.querySelector('.row-checkbox'));
+        const totalRows = dataRows.length;
+        const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
+
+        // Hide all data rows first
+        allRows.forEach(row => {
+            if (row.querySelector('.row-checkbox')) {
+                row.style.display = 'none';
+            }
+        });
+
+        // Show only rows for current page
+        const start = (currentPage - 1) * rowsPerPage;
+        const end = start + rowsPerPage;
+        dataRows.slice(start, end).forEach((row, idx) => {
+            row.style.display = '';
+            // Update nomor urut (No) kolom
+            const noCell = row.querySelectorAll('td')[1];
+            if (noCell) {
+                noCell.textContent = start + idx + 1;
+            }
+        });
+
+        // Show/hide empty row if needed
+        const emptyRow = allRows.find(row => !row.querySelector('.row-checkbox'));
+        if (totalRows === 0 && emptyRow) {
+            emptyRow.style.display = '';
+        } else if (emptyRow) {
+            emptyRow.style.display = 'none';
+        }
+
+        // Pagination UI
+        const pagination = document.getElementById('pagination');
+        pagination.innerHTML = '';
+        for (let i = 1; i <= totalPages; i++) {
+            const li = document.createElement('li');
+            li.className = 'page-item' + (i === currentPage ? ' active' : '');
+            const a = document.createElement('a');
+            a.className = 'page-link';
+            a.href = '#';
+            a.textContent = i;
+            a.onclick = function (e) {
+                e.preventDefault();
+                if (currentPage !== i) {
+                    currentPage = i;
+                    paginateTable();
+                }
+            };
+            li.appendChild(a);
+            pagination.appendChild(li);
+        }
+    }
+
+    // Select all checkboxes
+    function toggleSelectAll(source) {
+        const checkboxes = document.querySelectorAll('.row-checkbox');
+        checkboxes.forEach(cb => {
+            if (cb.closest('tr').style.display !== 'none') {
+                cb.checked = source.checked;
+            }
+        });
+        updateDeleteBtn();
+    }
+
+    // Enable/disable delete button
+    function updateDeleteBtn() {
+        const checked = document.querySelectorAll('.row-checkbox:checked').length;
+        document.getElementById('deleteSelectedBtn').disabled = checked === 0;
+    }
+
+    // Listen for individual checkbox changes
+    document.addEventListener('change', function (e) {
+        if (e.target.classList.contains('row-checkbox')) {
+            updateDeleteBtn();
+            // If any unchecked, uncheck selectAll
+            const all = document.querySelectorAll('.row-checkbox');
+            const checked = document.querySelectorAll('.row-checkbox:checked');
+            document.getElementById('selectAll').checked = (all.length > 0 && all.length === checked.length);
+        }
+    });
+
+    // Multiple delete (client-side demo)
+    function deleteSelectedRows() {
+        if (!confirm('Yakin ingin menghapus kriteria terpilih?')) return;
+        const checkboxes = document.querySelectorAll('.row-checkbox:checked');
+        checkboxes.forEach(cb => cb.closest('tr').remove());
+        document.getElementById('selectAll').checked = false;
+        updateDeleteBtn();
+        paginateTable();
+    }
+
+    // Initial setup
+    document.addEventListener('DOMContentLoaded', function () {
+        paginateTable();
+        // Reset selectAll if page reloads
+        document.getElementById('selectAll').checked = false;
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Login Sistem SPK</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Google Fonts & Bootstrap Icons -->
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f0e0ff 0%, #d8b2f7 100%);
+            min-height: 100vh;
+            font-family: 'Montserrat', Arial, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-container {
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 8px 32px rgba(24, 86, 56, 0.15);
+            max-width: 400px;
+            width: 100%;
+            padding: 40px;
+            margin: 2rem 0;
+            position: relative;
+            animation: fadeIn 0.7s;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px);}
+            to { opacity: 1; transform: translateY(0);}
+        }
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .login-header h2 {
+            font-weight: 700;
+            color: #321856;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+        }
+        .login-header .icon-circle {
+            background: linear-gradient(135deg, #f0e0ff 0%, #d8b2f7 100%);
+            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem auto;
+            box-shadow: 0 2px 8px #d8b2f7;
+        }
+        .login-form {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+        .login-form label {
+            font-weight: 600;
+            color: #321856;
+            margin-bottom: 0.3rem;
+            display: block;
+        }
+        .login-form input[type="text"],
+        .login-form input[type="password"] {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0.75rem 1rem;
+            border: 1.5px solid #d8b2f7;
+            border-radius: 10px;
+            background: #f7f7f7;
+            font-size: 1rem;
+            margin-bottom: 1.2rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            max-width: 100%;
+            display: block;
+        }
+        .login-form input:focus {
+            border-color: #6a228b;
+            outline: none;
+            background: #eafff2;
+            box-shadow: 0 0 0 2px #d8b2f7;
+        }
+        .login-form button {
+            width: 100%;
+            padding: 0.75rem;
+            background: linear-gradient(90deg, #6a228b 60%, #9d68f1 100%);
+            color: #fff;
+            font-weight: 700;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            box-shadow: 0 2px 8px #d8b2f7;
+            transition: background 0.2s, transform 0.1s;
+            cursor: pointer;
+            max-width: 100%;
+            display: block;
+        }
+        .login-form button:hover, .login-form button:focus {
+            background: linear-gradient(90deg, #321856 60%, #4dcb4d 100%);
+            transform: translateY(-2px) scale(1.02);
+        }
+        .login-footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.98rem;
+            color: #321856;
+        }
+        .login-footer a {
+            color: #6a228b;
+            font-weight: 600;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .login-footer a:hover, .login-footer a:focus {
+            color: #321856;
+            text-decoration: underline;
+        }
+        .alert {
+            background: #ffeaea;
+            color: #d32f2f;
+            border: 1.5px solid #ffbdbd;
+            border-radius: 8px;
+            padding: 0.8rem 1rem;
+            margin-bottom: 1.2rem;
+            font-size: 0.98rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            animation: shake 0.3s;
+            box-sizing: border-box;
+            max-width: 100%;
+            word-break: break-word;
+        }
+        @keyframes shake {
+            0% { transform: translateX(0);}
+            20% { transform: translateX(-5px);}
+            40% { transform: translateX(5px);}
+            60% { transform: translateX(-5px);}
+            80% { transform: translateX(5px);}
+            100% { transform: translateX(0);}
+        }
+        .login-form .field-error {
+            border-color: #d32f2f !important;
+            background: #fff0f0 !important;
+        }
+        .login-form .helptext {
+            color: #b71c1c;
+            font-size: 0.92rem;
+            margin-top: -1rem;
+            margin-bottom: 1rem;
+            word-break: break-word;
+        }
+        @media (max-width: 500px) {
+            .login-container {
+                padding: 1.5rem 0.7rem 1.2rem 0.7rem;
+                max-width: 98vw;
+            }
+            .login-form input[type="text"],
+            .login-form input[type="password"],
+            .login-form button {
+                font-size: 1rem;
+                padding: 0.7rem 0.7rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container" aria-label="Form Login Sistem SPK">
+        <div class="login-header">
+            <div class="icon-circle" aria-hidden="true">
+                <i class="bi bi-person-circle" style="font-size: 2rem; color: #6a228b;"></i>
+            </div>
+            <h2>Login Sistem SPK</h2>
+            <p style="color:#6a228b; font-size:1rem; margin-bottom:0; margin-top:0.2rem;">Silakan masuk untuk melanjutkan</p>
+        </div>
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+        {% if form.errors %}
+        <div class="alert" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            Username atau password salah. Silakan coba lagi.
+        </div>
+        {% endif %}
+        <form class="login-form" method="POST" action="{% url 'login_view' %}" autocomplete="on" novalidate style="width:100%;max-width:100%;box-sizing:border-box;">
+            {% csrf_token %}
+            <label for="id_username">Username</label>
+            <input type="text" name="username" id="id_username" placeholder="Masukkan username" required autofocus
+                   {% if form.username.errors %} class="field-error"{% endif %} value="{{ form.username.value|default_if_none:'' }}">
+            {% if form.username.errors %}
+                <div class="helptext">{{ form.username.errors.0 }}</div>
+            {% endif %}
+            <label for="id_password">Password</label>
+            <input type="password" name="password" id="id_password" placeholder="Masukkan password" required
+                   {% if form.password.errors %}class="field-error"{% endif %}>
+            {% if form.password.errors %}
+                <div class="helptext">{{ form.password.errors.0 }}</div>
+            {% endif %}
+            <button type="submit" aria-label="Login ke sistem">Login</button>
+        </form>
+        <div class="login-footer">
+            
+        </div>
+    </div>
+    <!-- Bootstrap Icons CDN -->
+    <!-- (No JS needed for icons, so script tag removed) -->
+</body>
+</html>

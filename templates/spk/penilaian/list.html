@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Penilaian{% endblock %}
+
+{% block content %}
+<!-- DASHBOARD PENILAIAN -->
+<div class="d-flex justify-content-between align-items-center px-3" style="background-color: #F7F7F7; padding: 10px;">
+    <h4>Dashboard Penilaian</h4>
+    <div class="d-flex align-items-center gap-3">
+        <img src="https://i.pravatar.cc/40" class="rounded-img" alt="profile" style="border: 4px solid #eeeeee;">
+        <div>
+            <strong>{{ request.user.get_full_name|default:request.user.username }}</strong><br>
+            <small class="text-muted-sm">{{ request.user.email }}</small>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 px-3">
+    <div class="d-flex justify-content-between">
+        <div class="p-3 rounded-3 mb-5 w-100"
+            style="background: linear-gradient(90deg, #f0e0ff 0%, #d8b2f7 100%); border: 1px solid #d8b2f7; color: #321856; font-size: 15px; font-weight: 400;">
+            <p class="mb-0">
+                <i class="bi bi-info-circle-fill me-2"></i>
+                <strong>Informasi Menu Penilaian:</strong> Menu ini menampilkan seluruh data penilaian siswa berdasarkan kriteria yang telah ditentukan. Setiap entri penilaian akan digunakan dalam proses perhitungan Weighted Product (WP) untuk menentukan ranking siswa berprestasi. Anda dapat menambah, mengedit, dan menghapus data penilaian pada tabel di bawah ini.
+            </p>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3" style="margin-top: -15px;">
+        <div class="col-md-12">
+            <div class="card-custom1 d-flex flex-column justify-content-center p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0 fw-semibold">Daftar Penilaian Siswa</h5>
+                    <a href="{% url 'penilaian_add' %}" style="font-size: 15px; background-color: #850de7; color: white; text-decoration: none; border-radius: 12px; padding: 12px 18px;">
+                        <i class="bi bi-plus-circle me-2"></i>Tambah Penilaian
+                    </a>
+                </div>
+                <!-- Filter & Search -->
+                <div class="row mb-3">
+                    <div class="col-md-4 mb-2 mb-md-0">
+                        <select class="form-select" id="filterKelas" onchange="filterTable()">
+                            <option value="">Semua Kelas</option>
+                            <option value="XII IPA 1">XII IPA</option>
+                            <option value="XII IPS 2">XII IPS</option>
+                            <!-- Tambahkan kelas lain sesuai kebutuhan -->
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-2 mb-md-0">
+                        <select class="form-select" id="filterKriteria" onchange="filterTable()">
+                            <option value="">Semua Kriteria</option>
+                            {% if kriteria_list %}
+                                {% for kriteria in kriteria_list %}
+                                    <option value="{{ kriteria.nama }}">{{ kriteria.nama }}</option>
+                                {% endfor %}
+                            {% endif %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="text" class="form-control" id="searchInput" placeholder="Cari nama siswa/kriteria..."
+                            onkeyup="filterTable()">
+                    </div>
+                </div>
+                <form id="multiDeleteForm" autocomplete="off" onsubmit="return false;">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover align-middle mb-0" id="penilaianTable"
+                            style="background: #fff; border-radius: 12px; overflow: hidden;">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th style="width: 30px;">
+                                        <input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)">
+                                    </th>
+                                    <th style="width: 40px;">No</th>
+                                    <th>Nama Siswa</th>
+                                    <th>Kelas</th>
+                                    <th>Kriteria</th>
+                                    <th>Nilai</th>
+                                    <th>Tanggal Input</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="penilaianTableBody">
+                                {% for penilaian in data_penilaian %}
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" class="row-checkbox" value="{{ penilaian.id }}">
+                                    </td>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>{{ penilaian.siswa.nama }}</td>
+                                    <td>{{ penilaian.siswa.kelas }}</td>
+                                    <td>{{ penilaian.kriteria.nama }}</td>
+                                    <td>{{ penilaian.nilai }}</td>
+                                    <td>{{ penilaian.created_at|date:"d M Y H:i" }}</td>
+                                    <td>
+                                        <a href="{% url 'penilaian_update' penilaian.id %}"
+                                            class="btn btn-sm btn-warning">Edit</a>
+                                        <form action="{% url 'penilaian_delete' penilaian.id %}" method="post"
+                                            style="display:inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-danger"
+                                                onclick="return confirm('Yakin ingin menghapus penilaian ini?');">Hapus</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
+                        <button type="button" class="btn btn-danger btn-sm rounded-pill" id="deleteSelectedBtn"
+                            onclick="deleteSelectedRows()" disabled>
+                            <i class="bi bi-trash"></i> Hapus Terpilih
+                        </button>
+                        <!-- Pagination -->
+                        <nav>
+                            <ul class="pagination pagination-sm mb-0" id="pagination">
+                                <!-- Pagination items will be generated by JS -->
+                            </ul>
+                        </nav>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    // PAGINATION: 6 DATA PER PAGE, TAMPILKAN DATA SESUAI PAGE YANG DIPILIH
+    const rowsPerPage = 6;
+    let currentPage = 1;
+
+    function filterTable() {
+        const kelas = document.getElementById('filterKelas').value.trim().toLowerCase();
+        const kriteria = document.getElementById('filterKriteria').value.trim().toLowerCase();
+        const search = document.getElementById('searchInput').value.trim().toLowerCase();
+        const tbody = document.getElementById('penilaianTableBody');
+        const rows = Array.from(tbody.getElementsByTagName('tr'));
+
+        rows.forEach(row => {
+            // Only filter data rows, not the empty row
+            if (row.querySelector('.row-checkbox')) {
+                const cells = row.getElementsByTagName('td');
+                const nama = cells[2].textContent.trim().toLowerCase();
+                const kelasVal = cells[3].textContent.trim().toLowerCase();
+                const kriteriaVal = cells[4].textContent.trim().toLowerCase();
+
+                let show = true;
+                if (kelas && kelasVal !== kelas) show = false;
+                if (kriteria && kriteriaVal !== kriteria) show = false;
+                if (search && !(nama.includes(search) || kriteriaVal.includes(search))) show = false;
+
+                row.dataset.filtered = show ? "1" : "0";
+            }
+        });
+        currentPage = 1;
+        paginateTable();
+    }
+
+    function paginateTable() {
+        const tbody = document.getElementById('penilaianTableBody');
+        const allRows = Array.from(tbody.getElementsByTagName('tr'));
+        // Only count/filter data rows (with .row-checkbox)
+        const dataRows = allRows.filter(row => row.querySelector('.row-checkbox') && row.dataset.filtered !== "0");
+        const totalRows = dataRows.length;
+        const totalPages = Math.max(1, Math.ceil(totalRows / rowsPerPage));
+
+        // Hide all data rows first
+        allRows.forEach(row => {
+            if (row.querySelector('.row-checkbox')) {
+                row.style.display = 'none';
+            }
+        });
+
+        // Show only rows for current page
+        const start = (currentPage - 1) * rowsPerPage;
+        const end = start + rowsPerPage;
+        dataRows.slice(start, end).forEach((row, idx) => {
+            row.style.display = '';
+            // Update nomor urut (No) kolom
+            const noCell = row.querySelectorAll('td')[1];
+            if (noCell) {
+                noCell.textContent = start + idx + 1;
+            }
+        });
+
+        // Show/hide empty row if needed
+        const emptyRow = allRows.find(row => !row.querySelector('.row-checkbox'));
+        if (totalRows === 0 && emptyRow) {
+            emptyRow.style.display = '';
+        } else if (emptyRow) {
+            emptyRow.style.display = 'none';
+        }
+
+        // Pagination UI
+        const pagination = document.getElementById('pagination');
+        pagination.innerHTML = '';
+        for (let i = 1; i <= totalPages; i++) {
+            const li = document.createElement('li');
+            li.className = 'page-item' + (i === currentPage ? ' active' : '');
+            const a = document.createElement('a');
+            a.className = 'page-link';
+            a.href = '#';
+            a.textContent = i;
+            a.onclick = function (e) {
+                e.preventDefault();
+                if (currentPage !== i) {
+                    currentPage = i;
+                    paginateTable();
+                }
+            };
+            li.appendChild(a);
+            pagination.appendChild(li);
+        }
+    }
+
+    // Select all checkboxes
+    function toggleSelectAll(source) {
+        const checkboxes = document.querySelectorAll('.row-checkbox');
+        checkboxes.forEach(cb => {
+            if (cb.closest('tr').style.display !== 'none') {
+                cb.checked = source.checked;
+            }
+        });
+        updateDeleteBtn();
+    }
+
+    // Enable/disable delete button
+    function updateDeleteBtn() {
+        const checked = document.querySelectorAll('.row-checkbox:checked').length;
+        document.getElementById('deleteSelectedBtn').disabled = checked === 0;
+    }
+
+    // Listen for individual checkbox changes
+    document.addEventListener('change', function (e) {
+        if (e.target.classList.contains('row-checkbox')) {
+            updateDeleteBtn();
+            // If any unchecked, uncheck selectAll
+            const all = document.querySelectorAll('.row-checkbox');
+            const checked = document.querySelectorAll('.row-checkbox:checked');
+            document.getElementById('selectAll').checked = (all.length > 0 && all.length === checked.length);
+        }
+    });
+
+    // Multiple delete (client-side demo)
+    function deleteSelectedRows() {
+        if (!confirm('Yakin ingin menghapus data terpilih?')) return;
+        const checkboxes = document.querySelectorAll('.row-checkbox:checked');
+        checkboxes.forEach(cb => cb.closest('tr').remove());
+        document.getElementById('selectAll').checked = false;
+        updateDeleteBtn();
+        filterTable();
+    }
+
+    // Initial setup
+    document.addEventListener('DOMContentLoaded', function () {
+        // Set all rows as filtered by default
+        const tbody = document.getElementById('penilaianTableBody');
+        Array.from(tbody.getElementsByTagName('tr')).forEach(row => {
+            if (row.querySelector('.row-checkbox')) {
+                row.dataset.filtered = "1";
+            }
+        });
+        filterTable();
+        // Reset selectAll if page reloads
+        document.getElementById('selectAll').checked = false;
+    });
+</script>
+{% endblock %}

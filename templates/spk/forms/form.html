@@ -1,0 +1,95 @@
+<!-- templates untuk form -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Siswa{% endblock %}
+
+{% block content %}
+<!-- KONTEN UTAMA DASHBOARD -->
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center" style="background-color: #F7F7F7; padding: 10px;">
+    <h4>Data Form</h4>
+    <div class="d-flex align-items-center gap-3">
+        <img src="https://i.pravatar.cc/40" class="rounded-img" alt="profile" style="border: 4px solid #eeeeee;">
+        <div>
+            <strong>{{ request.user.get_full_name|default:request.user.username }}</strong><br>
+            <small class="text-muted-sm">{{ request.user.email }}</small>
+        </div>
+    </div>
+</div>
+
+<!-- Middle Cards -->
+<div class="row g-3">
+
+    <!-- Stats Cards -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-9">
+            <div class="card-custom1 d-flex flex-column justify-content-center p-4">
+                <!-- UI Title/Head Form -->
+                <div class="mb-4">
+                    <div class="d-flex align-items-center gap-3">
+                        <div
+                            style="background: linear-gradient(135deg, #f0e0ff 0%, #d8b2f7 100%); border-radius: 50%; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+                            <i class="bi bi-person-plus-fill" style="font-size: 2rem; color: #6a228b;"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0" style="font-weight: 700; color: #321856; letter-spacing: 1px;">Form {{forms_name }}</h3>
+                            <small class="text-muted" style="font-size: 15px;">Silakan {{ forms_name }} dengan lengkap
+                                dan benar.</small>
+                        </div>
+                    </div>
+                    <hr class="my-3" style="border-top: 2px solid #d8b2f7;">
+                </div>
+
+                <form method="POST">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                    <a href="" class="btn btn-secondary">Batal</a>
+                </form>
+            </div>
+        </div>
+
+        <!-- CARD INFO -->
+        <div class="col-md-3">
+            <div class="card-custom d-flex flex-column justify-content-center align-items-center p-4"
+                style="background: linear-gradient(135deg, #f0e0ff 0%, #d8b2f7 100%); box-shadow: 0 4px 24px rgba(24, 86, 56, 0.08); border: 2px solid #d8b2f7;">
+                <div class="d-flex justify-content-center align-items-center "
+                    style="height: 150px;width: 100%;  background: linear-gradient(135deg, #efe0ff 60%, #9d68f1 100%); border-radius: 23px; border: 3px dashed #964dcbea;">
+                    <img src="{% static 'img/piala.png' %}" alt="Trophy"
+                        style="width: 90px; height: 90px; object-fit: contain; filter: drop-shadow(0 2px 8px #4a289955);">
+                </div>
+                <div class="my-3 w-100 text-center">
+                    <h5 class="mb-0" style="font-weight: 700; color: #321856; letter-spacing: 1px;">
+                        <i class="bi bi-star-fill me-2 text-warning"></i>Sistem Pakar Siswa Berprestasi
+                    </h5>
+                </div>
+                <div class="d-flex flex-column align-items-center w-100">
+                    <p style="font-size: 15px; color: #321856; font-weight: 500; text-align: center;">
+                        Sistem ini membantu memilih siswa berprestasi secara objektif.
+                    <ul class="list-unstyled mb-3" style="color: #6a228b; font-size: 14px;">
+                        <li><i class="bi bi-check-circle-fill me-2 text-success"></i>Input data siswa dan kriteria</li>
+                        <li><i class="bi bi-check-circle-fill me-2 text-success"></i>Proses penilaian menggunakan metode sistem pakar</li>
+                        <li><i class="bi bi-check-circle-fill me-2 text-success"></i>Rekomendasi siswa berprestasi secara transparan</li>
+                    </ul>
+                    <a href="{% url 'dashboard' %}" class="btn btn-outline-primary rounded-pill px-4 py-2 mb-2"
+                        style="font-weight: 500;">
+                        <i class="bi bi-bar-chart-line-fill me-2"></i>Lihat Dashboard
+                    </a>
+                </div>
+                <hr class="w-100 my-4" style="border-top: 1.5px dashed #5203ba;">
+                <div class="mt-2 w-100 text-center">
+                    <small class="text-muted" style="font-size: 13px;">
+                        <i class="bi bi-lightbulb-fill me-1 text-warning"></i>
+                        Pastikan seluruh data diisi dengan benar agar sistem pakar dapat memberikan hasil rekomendasi yang akurat.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+
+{% endblock %}

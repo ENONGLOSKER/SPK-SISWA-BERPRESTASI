@@ -1,0 +1,103 @@
+body {
+    background-color: #1f1f1f;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.sidebar {
+    background-color: #F7F7F7;
+    height: 100vh;
+    padding: 1rem;
+    border-right: 1px solid #ddd;
+}
+
+.sidebar .nav-link {
+    color: #ffffff;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    transition: all 0.2s;
+}
+
+.sidebar .nav-link.active,
+.sidebar .nav-link:hover {
+    background-color: #e9f5ee;
+    color: #3b007f;
+}
+
+.card-custom1 {
+    border-radius: 20px;
+    padding: 18px;
+    background: white;
+}
+
+.card-custom {
+    transition: background 2s ease-out;
+    -webkit-transition: background 2s ease-out;
+    -moz-transition: background 2s ease-out;
+    -o-transition: background 2s ease-out;
+    border-radius: 20px;
+    padding: 18px;
+    background: linear-gradient(-135deg, #c675ff8e, #f7fcf8, #ad95fb8e);
+    border: 1px solid #e9e9e9;
+}
+
+.card-custom:hover {
+    background: linear-gradient(135deg, #c675ff8e, #f7fcf8, #ad95fb8e);
+    border: 1px solid #e9e9e9;
+    /* box-shadow: 0 8px 32px 0 rgba(44, 187, 99, 0.15), 0 1.5px 8px 0 rgba(44, 187, 99, 0.10); */
+    /* transform: translateY(-6px) scale(1.025); */
+}
+
+.card-custom-green {
+    transition: 0.5s ease-in-out;
+    background: linear-gradient(-135deg, #ad8ffa, #5203ba, #522e7d, #441b5e);
+    color: white;
+    box-shadow: 0px 5px 30px rgba(187, 124, 255, 0.89);
+    border: 1px solid #e9e9e9;
+    backdrop-filter: blur(10px);
+}
+
+.card-custom-green:hover {
+    background: linear-gradient(135deg, #ad8ffa, #5203ba, #522e7d, #441b5e);
+    color: white;
+}
+
+.rounded-img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+}
+
+.text-muted-sm {
+    font-size: 0.85rem;
+}
+
+.progress-ring {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: conic-gradient(#5f2e7d 0% 41%, #ddd 41% 100%);
+}
+
+.time-box {
+    background: url('https://images.unsplash.com/photo-1612831816277-fb3f9b89d992') center/cover no-repeat;
+    color: white;
+    border-radius: 20px;
+    padding: 1rem;
+}
+
+.btn-green {
+    background-color: #5f2e7d;
+    color: white;
+}
+
+.btn-green:hover {
+    background-color: #481b5e;
+}
+
+/* Grafik Penilaian */
+.chart-container {
+    position: relative;
+    width: 100%;
+    min-height: 180px;
+    margin-top: 10px;
+}
