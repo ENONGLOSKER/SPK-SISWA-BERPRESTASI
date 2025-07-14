@@ -24,6 +24,11 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout_view'),
     path('dashboard/', views.dashboard, name='dashboard'),
 
+    # import file excel
+    path('import_siswa/', views.import_siswa, name='import_siswa'),
+    # path('import_kriteria/', views.import_kriteria, name='import_kriteria'),
+    # path('import_penilaian/', views.import_penilaian, name='import_penilaian'),
+
     # siswa
     path('siswa/', views.siswa_list, name='siswa_list'),
     path('siswa/add/', views.siswa_add, name='siswa_add'),

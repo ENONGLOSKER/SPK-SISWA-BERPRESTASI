@@ -15,6 +15,158 @@ from django.db.models import Count
 
 # Create your views here.
 
+import openpyxl
+from django.views.decorators.csrf import csrf_exempt
+from django.core.files.storage import FileSystemStorage
+from django.urls import reverse
+from django.conf import settings
+
+@login_required
+def import_siswa(request):
+    if request.method == 'POST' and request.FILES.get('excel_file'):
+        excel_file = request.FILES['excel_file']
+        # Simpan file sementara
+        fs = FileSystemStorage(location=settings.MEDIA_ROOT)
+        filename = fs.save(excel_file.name, excel_file)
+        file_path = fs.path(filename)
+
+        try:
+            wb = openpyxl.load_workbook(file_path)
+            ws = wb.active
+            rows = list(ws.iter_rows(min_row=2, values_only=True))  # skip header
+
+            imported = 0
+            for row in rows:
+                # Asumsi kolom: Nama, NIS, Jenis Kelamin, Tanggal Lahir, Kelas, Alamat
+                nama = row[0]
+                nis = row[1]
+                jenis_kelamin = row[2]
+                # Contoh format tgl lahir: "2005-08-17" atau "17/08/2005"
+                tanggal_lahir = row[3] if len(row) > 3 else None
+                kelas = row[4] if len(row) > 4 else ""
+                alamat = row[5] if len(row) > 5 else ""
+
+                if not nama or not nis:
+                    continue  # skip baris kosong
+
+                # Cek jika NIS sudah ada
+                if Siswa.objects.filter(nis=nis).exists():
+                    continue
+
+                # Konversi tanggal lahir jika perlu
+                tgl_lahir = None
+                if tanggal_lahir:
+                    if isinstance(tanggal_lahir, str):
+                        # Format string, coba parse
+                        from datetime import datetime
+                        try:
+                            tgl_lahir = datetime.strptime(tanggal_lahir, "%Y-%m-%d").date()
+                        except ValueError:
+                            try:
+                                tgl_lahir = datetime.strptime(tanggal_lahir, "%d/%m/%Y").date()
+                            except ValueError:
+                                tgl_lahir = None
+                    elif hasattr(tanggal_lahir, 'date'):
+                        # Excel date
+                        tgl_lahir = tanggal_lahir.date() if hasattr(tanggal_lahir, 'date') else tanggal_lahir
+                    else:
+                        tgl_lahir = tanggal_lahir
+
+                Siswa.objects.create(
+                    nama=nama,
+                    nis=nis,
+                    jenis_kelamin=jenis_kelamin,
+                    tanggal_lahir=tgl_lahir,
+                    kelas=kelas,
+                    alamat=alamat
+                )
+                imported += 1
+
+            messages.success(request, f'Berhasil mengimpor {imported} data siswa.')
+        except Exception as e:
+            messages.error(request, f'Gagal mengimpor data: {str(e)}')
+        finally:
+            fs.delete(filename)
+        return redirect('siswa_list')
+    return render(request, 'spk/siswa/import_siswa.html', {'title': 'Import Data Siswa'})
+
+from django.views.decorators.csrf import csrf_exempt
+from django.core.files.storage import FileSystemStorage
+import openpyxl
+from .models import Siswa, Kriteria, Penilaian
+from django.db import transaction
+
+@login_required
+def import_penilaian(request):
+    """
+    Import data penilaian siswa dari file Excel.
+    Format Excel:
+        Kolom A: NIS
+        Kolom B: Nama Siswa (opsional, hanya untuk referensi)
+        Kolom C dst: Nilai kriteria (header baris 1 = kode kriteria, baris 2 dst = nilai)
+    """
+    if request.method == 'POST' and request.FILES.get('excel_file'):
+        excel_file = request.FILES['excel_file']
+        fs = FileSystemStorage(location='tmp/')
+        filename = fs.save(excel_file.name, excel_file)
+        file_path = fs.path(filename)
+        try:
+            wb = openpyxl.load_workbook(file_path)
+            ws = wb.active
+
+            # Ambil header kode kriteria dari baris pertama
+            headers = [cell.value for cell in ws[1]]
+            if len(headers) < 3:
+                messages.error(request, "Format file tidak valid. Minimal harus ada NIS, Nama, dan satu kriteria.")
+                return redirect('import_penilaian')
+
+            # Kriteria dimulai dari kolom ke-3
+            kriteria_kode_list = headers[2:]
+            kriteria_map = {k.kode: k for k in Kriteria.objects.filter(kode__in=kriteria_kode_list)}
+            missing_kriteria = set(kriteria_kode_list) - set(kriteria_map.keys())
+            if missing_kriteria:
+                messages.error(request, f"Kriteria berikut tidak ditemukan di database: {', '.join(missing_kriteria)}")
+                return redirect('import_penilaian')
+
+            imported = 0
+            updated = 0
+            with transaction.atomic():
+                for row in ws.iter_rows(min_row=2, values_only=True):
+                    nis = str(row[0]).strip() if row[0] else None
+                    if not nis:
+                        continue
+                    try:
+                        siswa = Siswa.objects.get(nis=nis)
+                    except Siswa.DoesNotExist:
+                        continue  # skip siswa yang tidak ada
+
+                    for idx, kode in enumerate(kriteria_kode_list):
+                        nilai = row[2 + idx]
+                        # Pastikan nilai bertipe float (bukan decimal/dll)
+                        if nilai is None or (isinstance(nilai, str) and nilai.strip() == ''):
+                            continue
+                        try:
+                            nilai_float = float(nilai)
+                        except Exception:
+                            continue
+                        kriteria = kriteria_map[kode]
+                        penilaian_obj, created = Penilaian.objects.update_or_create(
+                            siswa=siswa,
+                            kriteria=kriteria,
+                            defaults={'nilai': nilai_float}
+                        )
+                        if created:
+                            imported += 1
+                        else:
+                            updated += 1
+
+            messages.success(request, f'Import selesai. {imported} penilaian baru ditambahkan, {updated} penilaian diupdate.')
+        except Exception as e:
+            messages.error(request, f'Gagal mengimpor data penilaian: {str(e)}')
+        finally:
+            fs.delete(filename)
+        return redirect('penilaian_list')
+    return render(request, 'spk/penilaian/import_penilaian.html', {'title': 'Import Data Penilaian'})
 
 
 def login_view(request):
@@ -368,10 +520,10 @@ def hasil_wp_list(request):
         }
         for penilaian in siswa.penilaian.all():
             kode_kriteria = penilaian.kriteria.kode.upper()
-            penilaian_dict['penilaian'][kode_kriteria] = penilaian.nilai
+            penilaian_dict['penilaian'][kode_kriteria] = float(penilaian.nilai)
         hasil = data_hasil.filter(siswa=siswa).first()
         if hasil:
-            penilaian_dict['jumlah_vector_s'] = hasil.vector_s
+            penilaian_dict['jumlah_vector_s'] = float(hasil.vector_s)
         penilaian_data.append(penilaian_dict)
 
     # Catat log aktivitas
@@ -388,7 +540,7 @@ def hasil_wp_list(request):
         'data_hasil': data_hasil,
         'penilaian_data': penilaian_data,
         'total_data': total_data,
-        'total_vector_s': total_vector_s,
+        'total_vector_s': float(total_vector_s),
         'title': 'Hasil WP',
         'form_name': 'Hasil WP',
     }
@@ -467,12 +619,12 @@ def perhitungan_wp(request):
           K3 = 0.3 / 1.0 = 0.3
         
         '''
-        total_bobot = sum(k.bobot for k in kriteria_list)
+        total_bobot = sum(float(k.bobot) for k in kriteria_list)
         if total_bobot <= 0:
             messages.error(request, 'Total bobot harus lebih dari 0.')
             return redirect('dashboard')
         bobot_ternormalisasi = {
-            k.id: (k.bobot / total_bobot if k.jenis == 'benefit' else -(k.bobot / total_bobot))
+            k.id: (float(k.bobot) / total_bobot if k.jenis == 'benefit' else -(float(k.bobot) / total_bobot))
             for k in kriteria_list
         }
 
@@ -480,7 +632,7 @@ def perhitungan_wp(request):
 
         nilai_siswa = defaultdict(dict)
         for p in penilaian_list:
-            nilai_siswa[p.siswa_id][p.kriteria_id] = p.nilai
+            nilai_siswa[p.siswa_id][p.kriteria_id] = float(p.nilai)
 
         # Tahap 3: Hitung vector S untuk setiap siswa
         vector_s_dict = {}
@@ -505,13 +657,13 @@ def perhitungan_wp(request):
             vs = 1.0
             detail = {}
             for kriteria in kriteria_list:
-                nilai = nilai_siswa.get(siswa.id, {}).get(kriteria.id, 0)
+                nilai = nilai_siswa.get(siswa.id, {}).get(kriteria.id, 0.0)
                 bobot = bobot_ternormalisasi[kriteria.id]
                 # pangkat = nilai^bobot (jika nilai > 0, jika tidak maka 0)
-                pangkat = math.pow(nilai, bobot) if nilai > 0 else 0
+                pangkat = math.pow(float(nilai), float(bobot)) if nilai > 0 else 0.0
                 vs *= pangkat
-                detail[kriteria.kode] = round(pangkat, 4)
-            vector_s_dict[siswa.id] = vs
+                detail[kriteria.kode] = round(float(pangkat), 4)
+            vector_s_dict[siswa.id] = float(vs)
             detail_perhitungan[siswa.id] = detail
 
         # Tahap 4: Hitung vector V
@@ -545,12 +697,12 @@ def perhitungan_wp(request):
           
         Perhitungan kode di bawah ini melakukan hal yang sama untuk seluruh siswa.
         '''
-        total_s = sum(vector_s_dict.values())
+        total_s = sum(float(v) for v in vector_s_dict.values())
         print(f"total_s:{total_s} ===================")
         hasil_list = []
         for siswa in siswa_list:
-            vs = vector_s_dict[siswa.id]
-            vv = vs / total_s if total_s > 0 else 0
+            vs = float(vector_s_dict[siswa.id])
+            vv = vs / total_s if total_s > 0 else 0.0
             hasil_list.append({
                 'siswa': siswa,
                 'vector_s': round(vs, 6),
@@ -564,8 +716,8 @@ def perhitungan_wp(request):
         for idx, h in enumerate(hasil_list, start=1):
             HasilWP.objects.create(
                 siswa=h['siswa'],
-                vector_s=h['vector_s'],
-                vector_v=h['vector_v'],
+                vector_s=float(h['vector_s']),
+                vector_v=float(h['vector_v']),
                 ranking=idx,
                 detail_perhitungan=h['detail'],
                 tanggal_hitung=timezone.now(),
@@ -582,7 +734,7 @@ def perhitungan_wp(request):
         )
 
         messages.success(request, 'Perhitungan WP berhasil dilakukan!')
-        return redirect('dashboard')
+        return redirect('hasil_wp')
 
 @login_required
 def reset_perhitungan(request):
